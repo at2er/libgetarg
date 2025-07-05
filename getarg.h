@@ -15,7 +15,7 @@ typedef int (*getarg_opt_parser)(int argc, char **argv, struct option *opt);
 enum GETARG_OPT_TYPE {
 	GETARG_HELP_OPT,
 	GETARG_LIST_ARG,
-	GETARG_NO_ARG,
+	GETARG_NO_ARG
 };
 
 struct option {
@@ -35,7 +35,6 @@ struct option {
 #define __LIBGETARG_H__DEF_FUNCTIONS
 int getarg(int argc, char *argv[], struct option *opts);
 void getarg_help_opt(struct option *opt, struct option *opts);
-int getarg_init(struct option *opts);
 #endif
 
 #endif

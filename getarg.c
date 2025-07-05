@@ -35,17 +35,17 @@ int apply_opt(int argc, char *argv[], struct option *opt, struct option *opts)
 	if (opt == NULL)
 		goto err_unknown_opt;
 	switch (opt->type) {
-	case GETARG_NO_ARG:
-		if (opt->parse(0, NULL, opt))
-			return -1;
-		return 0;
-		break;
 	case GETARG_HELP_OPT:
 		getarg_help_opt(opt, opts);
 		return 0;
 		break;
 	case GETARG_LIST_ARG:
 		return parse_list_arg(argc - 1, &argv[1], opt);
+		break;
+	case GETARG_NO_ARG:
+		if (opt->parse(0, NULL, opt))
+			return -1;
+		return 0;
 		break;
 	}
 	if (argv[1][0] == '-') {
@@ -255,4 +255,5 @@ void getarg_help_opt(struct option *opt, struct option *opts)
 	printf("\n");
 	if (opt != NULL && opt->parse != NULL)
 		opt->parse(1, NULL, opt);
+	exit(0);
 }
