@@ -38,6 +38,12 @@ static int test_no_arg(int argc, char **argv, struct option *opt)
 	return 0;
 }
 
+static int test_root_mod(int argc, char **argv, struct option *opt)
+{
+	printf("libgetarg: \"%c:%s\"\n", opt->short_name, opt->long_name);
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	struct option opts[] = {
@@ -60,6 +66,13 @@ int main(int argc, char *argv[])
 			GETARG_NO_ARG, 0,
 			test_no_arg,
 			"test no arg",
+			NULL
+		},
+		{
+			"root-mod", '\0',
+			GETARG_LIST_ARG, 0,
+			test_root_mod,
+			"set root module name",
 			NULL
 		},
 		{

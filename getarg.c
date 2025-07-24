@@ -22,6 +22,7 @@ static int apply_opt(int argc, char *argv[], struct option *opt,
 		struct option *opts);
 static int apply_opt_queue(int argc, char *argv[], int queue_len,
 		struct option **queue);
+static void help_opt_elem(struct option *opt);
 static int init(struct option *opts);
 static int init_long_opt(struct option *opt);
 static struct option *long_opt_find(char *name);
@@ -59,8 +60,7 @@ int apply_opt(int argc, char *argv[], struct option *opt, struct option *opts)
 		return -1;
 	return 0;
 err_unknown_opt:
-	fprintf(stderr, "libgetarg: Unknown option: \"%c:%s\"\n",
-			opt->short_name, opt->long_name);
+	fprintf(stderr, "libgetarg: Unknown option\n");
 	return -1;
 }
 
@@ -74,15 +74,31 @@ int apply_opt_queue(int argc, char *argv[], int queue_len,
 	return 0;
 }
 
+void help_opt_elem(struct option *opt)
+{
+	if (opt->short_name == '\0') {
+		printf("\t    --%s:\t%s\n",
+				opt->long_name,
+				opt->document);
+	} else {
+		printf("\t-%c, --%s:\t%s\n",
+				opt->short_name,
+				opt->long_name,
+				opt->document);
+	}
+	if (opt->opt_doc != NULL)
+		printf("\t\t%s\n", opt->opt_doc);
+}
+
 int init(struct option *opts)
 {
 	int i = 0;
 	for (; !CHECK_OPTS_END(opts[i]); i++) {
-		if (opts[i].short_name == '\0')
-			continue;
 		if (opts[i].long_name != NULL)
 			if (init_long_opt(&opts[i]))
 				return 1;
+		if (opts[i].short_name == '\0')
+			continue;
 		short_opts[(uint8_t)opts[i].short_name] = &opts[i];
 	}
 	default_arg_parser = opts[i].parse;
@@ -245,12 +261,7 @@ void getarg_help_opt(struct option *opt, struct option *opts)
 		opt->parse(0, NULL, opt);
 	printf("\n\nOPTIONS:\n");
 	for (int i = 0; !CHECK_OPTS_END(opts[i]); i++) {
-		printf("\t-%c, --%s:\t%s\n",
-				opts[i].short_name,
-				opts[i].long_name,
-				opts[i].document);
-		if (opts[i].opt_doc != NULL)
-			printf("\t\t%s\n", opts[i].opt_doc);
+		help_opt_elem(&opts[i]);
 	}
 	printf("\n");
 	if (opt != NULL && opt->parse != NULL)
