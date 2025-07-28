@@ -2,13 +2,16 @@ CC = gcc
 CFLAGS = -Wall -std=c99
 CDEBUG_FLAGS = -Wall -std=c99 -g
 AR = ar
+PREFIX = /usr/local
+
+HEADER_DIR = $(PREFIX)/include
+TARGET_DIR = $(PREFIX)/lib
+
+HEADER = getarg.h
+TARGET = libgetarg.a
 
 SRC = getarg.c
-HEADER = getarg.h
 OBJ = $(SRC:.c=.o)
-TARGET = libgetarg.a
-TARGET_DIR = /usr/local/lib
-HEADER_DIR = /usr/local/include
 
 DEBUG_TARGET = getarg.debug
 DEBUG_OBJ = $(SRC:.c=.debug.o)
@@ -34,9 +37,9 @@ clean:
 		$(DEBUG_OBJ) $(DEBUG_TARGET)
 
 install: all
-	mkdir -p $(TARGET_DIR)
-	cp -f $(TARGET) $(TARGET_DIR)/$(TARGET)
+	mkdir -p $(HEADER_DIR) $(TARGET_DIR)
 	cp -f $(HEADER) $(HEADER_DIR)/$(HEADER)
+	cp -f $(TARGET) $(TARGET_DIR)/$(TARGET)
 
 uninstall:
-	rm -f $(TARGET_DIR)/$(TARGET) $(HEADER_DIR)/$(HEADER)
+	rm -f $(HEADER_DIR)/$(HEADER) $(TARGET_DIR)/$(TARGET)
