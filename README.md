@@ -14,4 +14,4 @@ sudo make all install
 
 ## Use
 Pass the `-lgetarg` parameter to the C compiler,
-And then `#include <sctrie.h>` in your source code.
+And then `#include <getarg.h>` in your source code.
