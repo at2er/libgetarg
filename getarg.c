@@ -1,5 +1,6 @@
 #include "getarg.h"
 #include <limits.h>
+#include <sctrie.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,8 +11,8 @@
 
 struct long_opt_node;
 struct long_opt_node {
-	struct option *opt;
 	struct long_opt_node *children[UCHAR_MAX + 1];
+	struct option *opt;
 };
 
 static getarg_opt_parser default_arg_parser = NULL;
@@ -107,37 +108,22 @@ int init(struct option *opts)
 
 int init_long_opt(struct option *opt)
 {
-	uint8_t index = (uint8_t)opt->long_name[0];
-	struct long_opt_node *cur = long_opts[index];
-	if (cur == NULL) {
-		cur = malloc(sizeof(*cur));
-		long_opts[index] = cur;
-	}
-	for (int i = 1, len = strlen(opt->long_name); i < len; i++) {
-		index = opt->long_name[i];
-		if (cur->children[index] == NULL)
-			cur->children[index] = malloc(sizeof(*cur));
-		cur = cur->children[index];
-	}
-	cur->opt = opt;
+	struct long_opt_node *node =
+		sctrie_append_elem(long_opts, sizeof(*node),
+				opt->long_name, strlen(opt->long_name));
+	if (node == NULL)
+		return 1;
+	node->opt = opt;
 	return 0;
 }
 
 struct option *long_opt_find(char *name)
 {
-	struct long_opt_node *cur = long_opts[(uint8_t)name[2]];
-	int index = 0;
-	if (cur == NULL)
+	struct long_opt_node *node =
+		sctrie_find_elem(long_opts, &name[2], strlen(name) - 2);
+	if (node == NULL)
 		return NULL;
-	for (int i = 3, len = strlen(name); i < len; i++) {
-		index = name[i];
-		if (cur->children[index] == NULL)
-			cur->children[index] = malloc(sizeof(*cur));
-		cur = cur->children[index];
-	}
-	if (cur == NULL)
-		return NULL;
-	return cur->opt;
+	return node->opt;
 }
 
 int parse_list_arg(int argc, char *argv[], struct option *opt)
@@ -221,9 +207,11 @@ int getarg(int argc, char *argv[], struct option *opts)
 		goto err_init_failed;
 	for (i = 1, jump = 0; i < argc; i++) {
 		if (argv[i][0] == '-') {
-			if ((jump = parse_opt(argc - i, &argv[i], opts)) == -1)
+			if ((jump = parse_opt(argc - i, &argv[i], opts)) < 0)
 				goto err_free_default_argv;
 			i += jump;
+			if (i > INT_MAX)
+				goto err_free_default_argv;
 			jump = 0;
 			continue;
 		}
@@ -232,6 +220,7 @@ int getarg(int argc, char *argv[], struct option *opts)
 				default_argc * sizeof(char*));
 		default_argv[default_argc - 1] = argv[i];
 	}
+	sctrie_free_tree_noself(long_opts, free);
 	if (default_argv == NULL)
 		return 0;
 	if (default_arg_parser == NULL)

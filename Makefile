@@ -1,6 +1,7 @@
 CC = gcc
-CFLAGS = -Wall -std=c99
-CDEBUG_FLAGS = -Wall -std=c99 -g
+CFLAGS = -Wall -std=c99 $(CLIBS)
+CDEBUG_FLAGS = $(CFLAGS) -g
+CLIBS = -lsctrie
 AR = ar
 PREFIX = /usr/local
 
@@ -21,16 +22,16 @@ all: $(TARGET) $(HEADER)
 debug: main.c $(DEBUG_TARGET) $(HEADER)
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) -c $< -o $@ $(CFLAGS)
 
 %.debug.o: %.c
-	$(CC) $(CDEBUG_FLAGS) -c $< -o $@
+	$(CC) -c $< -o $@ $(CDEBUG_FLAGS)
 
 $(TARGET): $(OBJ)
 	$(AR) -rcs $@ $(OBJ)
 
 $(DEBUG_TARGET): main.c $(DEBUG_OBJ)
-	$(CC) $(CDEBUG_FLAGS) -o $@ $^
+	$(CC) -o $@ $^ $(CDEBUG_FLAGS)
 
 clean:
 	rm -f $(OBJ) $(TARGET)\
