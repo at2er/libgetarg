@@ -15,7 +15,8 @@ typedef int (*getarg_opt_parser)(int argc, char **argv, struct option *opt);
 enum GETARG_OPT_TYPE {
 	GETARG_HELP_OPT,
 	GETARG_LIST_ARG,
-	GETARG_NO_ARG
+	GETARG_NO_ARG,
+	GETARG_SINGLE_ARG
 };
 
 struct option {

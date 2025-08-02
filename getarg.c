@@ -19,18 +19,33 @@ static getarg_opt_parser default_arg_parser = NULL;
 static struct option *short_opts[UCHAR_MAX + 1];
 static struct long_opt_node *long_opts[UCHAR_MAX + 1];
 
+static int apply_list_arg(int argc, char *argv[], struct option *opt);
 static int apply_opt(int argc, char *argv[], struct option *opt,
 		struct option *opts);
 static int apply_opt_queue(int argc, char *argv[], int queue_len,
 		struct option **queue);
+static int apply_single_arg(int argc, char *argv[], struct option *opt);
 static void help_opt_elem(struct option *opt);
 static int init(struct option *opts);
 static int init_long_opt(struct option *opt);
 static struct option *long_opt_find(char *name);
-static int parse_list_arg(int argc, char *argv[], struct option *opt);
 static int parse_long_opt(int argc, char *argv[], struct option *opts);
 static int parse_opt(int argc, char *argv[], struct option *opts);
 static int parse_short_opt(int argc, char *argv[], struct option *opts);
+
+int apply_list_arg(int argc, char *argv[], struct option *opt)
+{
+	int len = 0;
+	for (len = 0; len < argc; len++) {
+		if (argv[len][0] == '-')
+			break;
+	}
+	if (len == 0)
+		return apply_single_arg(0, NULL, opt);
+	if (opt->parse(len, argv, opt))
+		return -1;
+	return len;
+}
 
 int apply_opt(int argc, char *argv[], struct option *opt, struct option *opts)
 {
@@ -42,12 +57,15 @@ int apply_opt(int argc, char *argv[], struct option *opt, struct option *opts)
 		return 0;
 		break;
 	case GETARG_LIST_ARG:
-		return parse_list_arg(argc - 1, &argv[1], opt);
+		return apply_list_arg(argc - 1, &argv[1], opt);
 		break;
 	case GETARG_NO_ARG:
 		if (opt->parse(0, NULL, opt))
 			return -1;
 		return 0;
+		break;
+	case GETARG_SINGLE_ARG:
+		return apply_single_arg(argc - 1, &argv[1], opt);
 		break;
 	}
 	if (argv[1][0] == '-') {
@@ -73,6 +91,24 @@ int apply_opt_queue(int argc, char *argv[], int queue_len,
 			return -1;
 	}
 	return 0;
+}
+
+int apply_single_arg(int argc, char *argv[], struct option *opt)
+{
+	if (argc <= 0) {
+		if (!opt->is_optional_arg)
+			goto err_arg_not_found;
+		if (opt->parse(0, NULL, opt))
+			return -1;
+		return 0;
+	}
+	if (opt->parse(1, argv, opt))
+		return -1;
+	return 1;
+err_arg_not_found:
+	fprintf(stderr, "libgetarg: Arguments for option '%s:%c' not found!\n",
+			opt->long_name, opt->short_name);
+	return -1;
 }
 
 void help_opt_elem(struct option *opt)
@@ -124,29 +160,6 @@ struct option *long_opt_find(char *name)
 	if (node == NULL)
 		return NULL;
 	return node->opt;
-}
-
-int parse_list_arg(int argc, char *argv[], struct option *opt)
-{
-	int len = 0;
-	for (len = 0; len < argc; len++) {
-		if (argv[len][0] == '-')
-			break;
-	}
-	if (len == 0) {
-		if (!opt->is_optional_arg)
-			goto err_arg_not_found;
-		if (opt->parse(0, NULL, opt))
-			return -1;
-		return 0;
-	}
-	if (opt->parse(len, argv, opt))
-		return -1;
-	return len;
-err_arg_not_found:
-	fprintf(stderr, "libgetarg: Arguments for option '%s:%c' not found!\n",
-			opt->long_name, opt->short_name);
-	return -1;
 }
 
 int parse_long_opt(int argc, char *argv[], struct option *opts)
