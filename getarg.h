@@ -12,6 +12,11 @@
 struct option;
 typedef int (*getarg_opt_parser)(int argc, char **argv, struct option *opt);
 
+enum GETARG_HELP_OPT_PARSER_TYPE {
+	GETARG_HELP_AFTER_USAGE,
+	GETARG_HELP_ENDING
+};
+
 enum GETARG_OPT_TYPE {
 	GETARG_HELP_OPT,
 	GETARG_LIST_ARG,

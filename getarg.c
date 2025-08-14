@@ -25,7 +25,7 @@ static int apply_opt(int argc, char *argv[], struct option *opt,
 static int apply_opt_queue(int argc, char *argv[], int queue_len,
 		struct option **queue);
 static int apply_single_arg(int argc, char *argv[], struct option *opt);
-static void help_opt_elem(struct option *opt);
+static void help_opt_elem(struct option *opt, unsigned int max_opt_len);
 static int init(struct option *opts);
 static int init_long_opt(struct option *opt);
 static struct option *long_opt_find(char *name);
@@ -111,20 +111,25 @@ err_arg_not_found:
 	return -1;
 }
 
-void help_opt_elem(struct option *opt)
+void help_opt_elem(struct option *opt, unsigned int max_opt_len)
 {
 	if (opt->short_name == '\0') {
-		printf("\t    --%s:\t%s\n",
+		printf("      --%s:  %*s%s\n",
 				opt->long_name,
+				(int)(max_opt_len - strlen(opt->long_name)),
+				"",
 				opt->document);
 	} else {
-		printf("\t-%c, --%s:\t%s\n",
+		printf("  -%c, --%s:  %*s%s\n",
 				opt->short_name,
 				opt->long_name,
+				(int)(max_opt_len - strlen(opt->long_name)),
+				"",
 				opt->document);
 	}
 	if (opt->opt_doc != NULL)
-		printf("\t\t%s\n", opt->opt_doc);
+		printf("    %*s%s\n", (int)(9 + max_opt_len),
+				"", opt->opt_doc);
 }
 
 int init(struct option *opts)
@@ -258,15 +263,20 @@ err_free_default_argv:
 
 void getarg_help_opt(struct option *opt, struct option *opts)
 {
+	unsigned int max_opt_len = 0;
 	printf("Usage: [OPTIONS] ");
 	if (opt != NULL && opt->parse != NULL)
-		opt->parse(0, NULL, opt);
+		opt->parse(GETARG_HELP_AFTER_USAGE, NULL, opt);
 	printf("\n\nOPTIONS:\n");
-	for (int i = 0; !CHECK_OPTS_END(opts[i]); i++) {
-		help_opt_elem(&opts[i]);
+	for (int i = 0, opt_len; !CHECK_OPTS_END(opts[i]); i++) {
+		opt_len = strlen(opts[i].long_name);
+		if (max_opt_len < opt_len)
+			max_opt_len = opt_len;
 	}
+	for (int i = 0; !CHECK_OPTS_END(opts[i]); i++)
+		help_opt_elem(&opts[i], max_opt_len);
 	printf("\n");
 	if (opt != NULL && opt->parse != NULL)
-		opt->parse(1, NULL, opt);
+		opt->parse(GETARG_HELP_ENDING, NULL, opt);
 	exit(0);
 }
