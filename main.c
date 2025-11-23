@@ -1,88 +1,68 @@
 /* test */
+#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include "getarg.h"
 
 #define LENGTH(X) (sizeof((X)) / sizeof((X)[0]))
 
-static int test_default_arg(int argc, char **argv, struct option *opt)
-{
-	printf("libgetarg: Default arguments: %d:\n", argc);
-	for (int i = 0; i < argc; i++)
-		printf("| %s\n", argv[i]);
-	return 0;
-}
+static char *long_only_arg = NULL;
+static char *long_and_short_arg = NULL;
+static char *short_only_arg = NULL;
 
-static int test_help_ext(int argc, char **argv, struct option *opt)
-{
-	if (argc == 0) {
-		printf("INPUT");
-		return 0;
-	}
-	printf("INPUT:\n"
-	       "\tSome file\n");
-	return 0;
-}
+static uint64_t uint = 0;
+static uint64_t flags = 0;
 
-static int test_list(int argc, char **argv, struct option *opt)
-{
-	printf("libgetarg: %d:\n", argc);
-	for (int i = 0; i < argc; i++)
-		printf("| %s\n", argv[i]);
-	return 0;
-}
+static const char *usages[] = {
+"usage: getarg: [OPTIONS]...",
+"",
+"options:",
+"  --enable-a:                test flag a 001",
+"  --enable-b:                test flag b 010",
+"  --enable-c:                test flag c 100",
+"  --long-only:               test long option",
+"  -x, --long-and-short-arg:  test long and short option",
+"  -s:                        test short option",
+"  -u, --uint:                test uint option argument",
+NULL
+};
 
-static int test_no_arg(int argc, char **argv, struct option *opt)
-{
-	printf("libgetarg: \"%c:%s\"\n", opt->short_name, opt->long_name);
-	return 0;
-}
-
-static int test_root_mod(int argc, char **argv, struct option *opt)
-{
-	printf("libgetarg: \"%c:%s\"\n", opt->short_name, opt->long_name);
-	return 0;
-}
+static struct option opts[] = {
+	OPT_FLAG("enable-a", NO_SHORT_NAME,    &flags, 1),
+	OPT_FLAG("enable-b", NO_SHORT_NAME,    &flags, 1 << 1),
+	OPT_FLAG("enable-c", NO_SHORT_NAME,    &flags, 1 << 2),
+	OPT_HELP("help",                 'h',  usages),
+	OPT_STRING("long-only", NO_SHORT_NAME, &long_only_arg),
+	OPT_STRING(NO_LONG_NAME,         's',  &short_only_arg),
+	OPT_STRING("long-and-short-arg", 'x',  &long_and_short_arg),
+	OPT_UINT("uint",                 'u',  &uint),
+	OPT_END
+};
 
 int main(int argc, char *argv[])
 {
-	struct option opts[] = {
-		{
-			"help", 'h',
-			GETARG_HELP_OPT, 0,
-			test_help_ext,
-			"show help documents",
-			NULL,
-		},
-		{
-			"list",  'l',
-			GETARG_LIST_ARG, 0,
-			test_list,
-			"test list arg",
-			"Option document test"
-		},
-		{
-			"no-arg", 'n',
-			GETARG_NO_ARG, 0,
-			test_no_arg,
-			"test no arg",
-			NULL
-		},
-		{
-			"root-mod", '\0',
-			GETARG_LIST_ARG, 0,
-			test_root_mod,
-			"set root module name",
-			NULL
-		},
-		{
-			NULL, '\0',
-			GETARG_LIST_ARG, 0,
-			test_default_arg,
-			"test default arg",
-			NULL
-		}
-	};
+	enum GETARG_RESULT ret;
 
-	return getarg(argc, argv, opts);
+	GETARG_BEGIN(ret, argc, argv, opts) {
+	case GETARG_RESULT_SUCCESSFUL: break;
+	case GETARG_RESULT_UNKNOWN:    GETARG_SHIFT(argc, argv); break;
+	default: return 1;
+	} GETARG_END;
+
+	if (long_only_arg)
+		printf("--long-only(string): %s\n", long_only_arg);
+	if (long_and_short_arg)
+		printf("--long-and-short-arg|-x(string): %s\n", long_and_short_arg);
+	if (short_only_arg)
+		printf("-s(string): %s\n", short_only_arg);
+	if (uint)
+		printf("--uint|-u(uint64_t): %lu\n", uint);
+
+	if (flags & 1)
+		printf("--enable-a\n");
+	if (flags & 1 << 1)
+		printf("--enable-b\n");
+	if (flags & 1 << 2)
+		printf("--enable-c\n");
+
+	return 0;
 }

@@ -1,7 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -std=c99 $(CLIBS)
-CDEBUG_FLAGS = $(CFLAGS) -g
-CLIBS = -lsctrie
+CFLAGS = -std=c99 -pedantic -Wall -Wextra
 AR = ar
 PREFIX = /usr/local
 
@@ -14,28 +12,19 @@ TARGET = libgetarg.a
 SRC = getarg.c
 OBJ = $(SRC:.c=.o)
 
-DEBUG_TARGET = getarg.debug
-DEBUG_OBJ = $(SRC:.c=.debug.o)
-
 .PHONY: all clean debug install uninstall
 all: $(TARGET) $(HEADER)
-debug: main.c $(DEBUG_TARGET) $(HEADER)
+debug: all main.c
+	$(CC) -o getarg main.c $(CFLAGS) -L. -lgetarg
 
 %.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS)
 
-%.debug.o: %.c
-	$(CC) -c $< -o $@ $(CDEBUG_FLAGS)
-
 $(TARGET): $(OBJ)
 	$(AR) -rcs $@ $(OBJ)
 
-$(DEBUG_TARGET): main.c $(DEBUG_OBJ)
-	$(CC) -o $@ $^ $(CDEBUG_FLAGS)
-
 clean:
-	rm -f $(OBJ) $(TARGET)\
-		$(DEBUG_OBJ) $(DEBUG_TARGET)
+	rm -f $(OBJ) $(TARGET) getarg
 
 install: all
 	mkdir -p $(HEADER_DIR) $(TARGET_DIR)

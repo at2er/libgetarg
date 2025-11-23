@@ -1,6 +1,5 @@
 # Getarg
 A simple and convenient library for CLI arguments parse.
-Equipped with a help infomation generator (refer to 'main.c').
 
 ## Build & Install
 > You may need to use `sudo`
