@@ -1,16 +1,7 @@
 # Getarg
-A simple and convenient library for CLI arguments parse.
-
-## Build & Install
-> You may need to use `sudo`
-```sh
-make all install
-```
-Or
-```
-sudo make all install
-```
+A simple and convenient library for command line arguments parse.
 
 ## Use
-Pass the `-lgetarg` parameter to the C compiler,
-And then `#include <getarg.h>` in your source code.
+Just include these single-header file `getarg.h`.
+And define their `IMPL` macros to get the definitions for compiling.
+- `#include "getarg.h"`: `GETARG_IMPL`

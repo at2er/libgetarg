@@ -1,6 +1,7 @@
 /* test */
 #include <stdint.h>
 #include <stdio.h>
+#define GETARG_IMPL
 #include "getarg.h"
 
 #define LENGTH(X) (sizeof((X)) / sizeof((X)[0]))
