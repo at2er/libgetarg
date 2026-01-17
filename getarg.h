@@ -13,6 +13,34 @@
  *       // OPT_HELP
  *       // @param usages: const char * [], see `Help (Usages)` for more
  *       OPT_HELP("help", 'h', usages),
+ *       ```
+ *           static const char *usages[] = {
+ *           "usage: getarg: [OPTIONS]...",
+ *           "",
+ *           "options:",
+ *           "...OPTIONS...",
+ *           NULL
+ *           };
+ *       ```
+ *
+ *       // OPT_MANUAL
+ *       // @param handler: getarg_opt_func
+ *       OPT_MANUAL("define", 'd' define_handler),
+ *       ```
+ *           enum GETARG_RESULT
+ *           define_handler(int *argc, char **argv[], struct option *opt)
+ *           {
+ *               const char *name, *content;
+ *
+ *               name = **argv;
+ *               GETARG_SHIFT(*argc, *argv);
+ *
+ *               content = **argv;
+ *               GETARG_SHIFT(*argc, *argv);
+ *
+ *               return GETARG_RESULT_SUCCESSFUL;
+ *           }
+ *       ```
  *
  *       // OPT_STRING
  *       // @param str: char ** (point to 'char *')
@@ -23,24 +51,6 @@
  *       OPT_UINT("uint", 'u', &uint),
  *
  *       OPT_END
- *     }
- *     ```
- *
- * - help (usage):
- *     ```
- *     static const char *usages[] = {
- *     "usage: getarg: [OPTIONS]...",
- *     "",
- *     "options:",
- *     "...OPTIONS...",
- *     NULL
- *     };
- *
- *     // In options definition:
- *     {
- *       ...
- *       OPT_HELP("help", 'h', usages),
- *       ...
  *     }
  *     ```
  *
@@ -57,6 +67,7 @@
  *     ```
  *
  * Version:
+ *     1.1.0: OPT_MANUAL for manual parsing by user function.
  *     1.0.0: change to be a single-header only library.
  *
  * MIT License
@@ -94,6 +105,7 @@ enum GETARG_OPT_TYPE {
 
 	GETARG_OPT_FLAG, /* --enable-xxx without any argument */
 	GETARG_OPT_HELP,
+	GETARG_OPT_MANUAL, /* manually parse arguments by function */
 	GETARG_OPT_STRING,
 	GETARG_OPT_UINT /* uint64_t */
 };
@@ -110,20 +122,30 @@ enum GETARG_RESULT {
 	GETARG_RESULT_UNKNOWN
 };
 
+struct option;
+typedef enum GETARG_RESULT (*getarg_opt_func)(
+		int *argc,
+		char **argv[],
+		struct option *opt);
+
 struct option {
 	enum GETARG_OPT_TYPE type;
 	const char *long_name;
 	const char short_name;
-	void *value;
+	union {
+		void *v;
+		getarg_opt_func f;
+	} value;
 	uintptr_t data;
 };
 
 #define OPT_FLAG(LN, SN, FLAGS, FLAG_BIT) \
-	{GETARG_OPT_FLAG, LN, SN, FLAGS, FLAG_BIT}
-#define OPT_HELP(LN, SN, USAGES) {GETARG_OPT_HELP,   LN, SN, USAGES, 0}
-#define OPT_STRING(LN, SN, STR)  {GETARG_OPT_STRING, LN, SN, STR,    0}
-#define OPT_UINT(LN, SN, UINT)   {GETARG_OPT_UINT,   LN, SN, UINT,   0}
-#define OPT_END {GETARG_OPT_END, NO_LONG_NAME, NO_SHORT_NAME, NULL,  0}
+	{GETARG_OPT_FLAG, LN, SN, {.v = FLAGS}, FLAG_BIT}
+#define OPT_HELP(LN, SN, USAGES)    {GETARG_OPT_HELP,   LN, SN, {.v = USAGES},  0}
+#define OPT_MANUAL(LN, SN, HANDLER) {GETARG_OPT_MANUAL, LN, SN, {.f = HANDLER}, 0}
+#define OPT_STRING(LN, SN, STR)     {GETARG_OPT_STRING, LN, SN, {.v = STR},     0}
+#define OPT_UINT(LN, SN, UINT)      {GETARG_OPT_UINT,   LN, SN, {.v = UINT},    0}
+#define OPT_END {GETARG_OPT_END, NO_LONG_NAME, NO_SHORT_NAME, {.v = NULL},  0}
 
 #define GETARG_BEGIN(RESULT, ARGC, ARGV, OPTS) do { \
 	GETARG_SHIFT(ARGC, ARGV); \
@@ -213,16 +235,18 @@ _getarg_parse_arg(int *argc, char **argv[], struct option *opt)
 	case GETARG_OPT_END:
 		break;
 	case GETARG_OPT_HELP:
-		return _getarg_apply_help_opt(opt->value);
+		return _getarg_apply_help_opt(opt->value.v);
 	case GETARG_OPT_FLAG:
-		*(uint64_t*)opt->value |= opt->data;
+		*(uint64_t*)opt->value.v |= opt->data;
 		break;
+	case GETARG_OPT_MANUAL:
+		return opt->value.f(argc, argv, opt);
 	case GETARG_OPT_STRING:
-		*(char**)opt->value = arg;
+		*(char**)opt->value.v = arg;
 		_GETARG_SHIFT(argc, argv);
 		break;
 	case GETARG_OPT_UINT:
-		*((uint64_t*)opt->value) = strtoull(arg, &tmp, 10);
+		*((uint64_t*)opt->value.v) = strtoull(arg, &tmp, 10);
 		if (tmp && tmp[0] != '\0')
 			return GETARG_RESULT_PARSE_ARG_FAILED;
 		break;
